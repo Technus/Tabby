@@ -4729,7 +4729,7 @@ elseif args[1]=="help" then
 	textutils.pagedPrint([[
 TABby - TableCommander by Tec_SG
 Program which allows easy table editing
-
+github.com/Technus/Tabby
 
 How to use:
 1.  Use as a program, just run
