@@ -29,172 +29,172 @@ _G.table.unpack=unpack
 
 
 --[[]]function stringSplit(str, inSplitPattern, outResults )
-  if type(str)~="string" or type(inSplitPattern)~="string" or (type(outResults)~="nil" and type(outResults)~="table") then 
-    return {},false
-  end
-  if type(outResults)~="table" then
-    outResults = { }
-  end
-  local theStart = 1
-  local theSplitStart, theSplitEnd = string.find( str, inSplitPattern, theStart )
-  while theSplitStart do
-    table.insert( outResults, string.sub( str, theStart, theSplitStart-1 ) )
-    theStart = theSplitEnd + 1
-    theSplitStart, theSplitEnd = string.find( str, inSplitPattern, theStart )
-  end
-  table.insert( outResults, string.sub( str, theStart ) )
-  return outResults,true
+	if type(str)~="string" or type(inSplitPattern)~="string" or (type(outResults)~="nil" and type(outResults)~="table") then 
+		return {},false
+	end
+	if type(outResults)~="table" then
+		outResults = { }
+	end
+	local theStart = 1
+	local theSplitStart, theSplitEnd = string.find( str, inSplitPattern, theStart )
+	while theSplitStart do
+		table.insert( outResults, string.sub( str, theStart, theSplitStart-1 ) )
+		theStart = theSplitEnd + 1
+		theSplitStart, theSplitEnd = string.find( str, inSplitPattern, theStart )
+	end
+	table.insert( outResults, string.sub( str, theStart ) )
+	return outResults,true
 end
 
 --[[]]function readEX( _sReplaceChar, _tHistory ,data,lastCharPos,state--[[side of screen or state table]])
 	local side=type(state)=="table" and state.side or tostring(state)
 	term.setCursorBlink( true )
 	local init=true
-    local sLine = tostring(data) or ""
-    local nHistoryPos
-    local nPos = 0
-    if type(_sReplaceChar)=="string" then
-        _sReplaceChar = string.sub( _sReplaceChar, 1, 1 )
-    end
+	local sLine = tostring(data) or ""
+	local nHistoryPos
+	local nPos = 0
+	if type(_sReplaceChar)=="string" then
+		_sReplaceChar = string.sub( _sReplaceChar, 1, 1 )
+	end
 	
 	if type(_tHistory)~="table" then _tHistory=nil end
-    
-    local w = lastCharPos or term.getSize()
-    local sx = term.getCursorPos()
-    
-    local function redraw( _sCustomReplaceChar )
-        local nScroll = 0
-        if sx + nPos >= w then
-            nScroll = (sx + nPos) - w
-        end
 
-        local cx,cy = term.getCursorPos()
-        term.setCursorPos( sx, cy )
-        local sReplace = _sCustomReplaceChar or _sReplaceChar
-        if sReplace then
-            term.write( string.rep( sReplace, math.max( string.len(sLine) - nScroll, 0 ) ) )
-        else
-            term.write( string.sub( sLine, nScroll + 1 ) )
-        end
-        term.setCursorPos( sx + nPos - nScroll, cy )
-    end
+	local w = lastCharPos or term.getSize()
+	local sx = term.getCursorPos()
+
+	local function redraw( _sCustomReplaceChar )
+		local nScroll = 0
+		if sx + nPos >= w then
+			nScroll = (sx + nPos) - w
+		end
+
+		local cx,cy = term.getCursorPos()
+		term.setCursorPos( sx, cy )
+		local sReplace = _sCustomReplaceChar or _sReplaceChar
+		if sReplace then
+			term.write( string.rep( sReplace, math.max( string.len(sLine) - nScroll, 0 ) ) )
+		else
+			term.write( string.sub( sLine, nScroll + 1 ) )
+		end
+		term.setCursorPos( sx + nPos - nScroll, cy )
+	end
 	
 	for i=sx,w do
 		term.write(" ")
 	end
-    redraw(" ")
-    nPos = string.len(sLine)
-    redraw()
-    
+	redraw(" ")
+	nPos = string.len(sLine)
+	redraw()
+
 	while true do
-        --local sEvent, param = os.pullEvent()
+		--local sEvent, param = os.pullEvent()
 		
 		local event={coroutine.yield()}
 		local sEvent=event[1]
 		local param=event[2]
 		
-        if sEvent == "char" then
-            -- Typed key
-            sLine = string.sub( sLine, 1, nPos ) .. param .. string.sub( sLine, nPos + 1 )
-            nPos = nPos + 1
-            redraw()
+		if sEvent == "char" then
+			-- Typed key
+			sLine = string.sub( sLine, 1, nPos ) .. param .. string.sub( sLine, nPos + 1 )
+			nPos = nPos + 1
+			redraw()
 
-        elseif sEvent == "paste" then
-            -- Pasted text
-            sLine = string.sub( sLine, 1, nPos ) .. param .. string.sub( sLine, nPos + 1 )
-            nPos = nPos + string.len( param )
-            redraw()
+		elseif sEvent == "paste" then
+			-- Pasted text
+			sLine = string.sub( sLine, 1, nPos ) .. param .. string.sub( sLine, nPos + 1 )
+			nPos = nPos + string.len( param )
+			redraw()
 		elseif sEvent == "mouse_click" then
 			break
-        elseif sEvent == "key" then
-            if param == keys.enter then
-                -- Enter
-                break
-                
-            elseif param == keys.left then
-                -- Left
-                if nPos > 0 then
-                    nPos = nPos - 1
-                    redraw()
-                end
-                
-            elseif param == keys.right then
-                -- Right                
-                if nPos < string.len(sLine) then
-                    redraw(" ")
-                    nPos = nPos + 1
-                    redraw()
-                end
-            
-            elseif param == keys.up or param == keys.down then
-                -- Up or down
-                if _tHistory then
-                    redraw(" ")
-                    if param == keys.up then
-                        -- Up
-                        if nHistoryPos == nil then
-                            if #_tHistory > 0 then
-                                nHistoryPos = #_tHistory
-                            end
-                        elseif nHistoryPos > 1 then
-                            nHistoryPos = nHistoryPos - 1
-                        end
-                    else
-                        -- Down
-                        if nHistoryPos == #_tHistory then
-                            nHistoryPos = nil
-                        elseif nHistoryPos ~= nil then
-                            nHistoryPos = nHistoryPos + 1
-                        end                        
-                    end
-                    if nHistoryPos then
-                        sLine = _tHistory[nHistoryPos]
-                        nPos = string.len( sLine ) 
-                    else
-                        sLine = ""
-                        nPos = 0
-                    end
-                    redraw()
-                end
-            elseif param == keys.backspace then
-                -- Backspace
-                if nPos > 0 then
-                    redraw(" ")
-                    sLine = string.sub( sLine, 1, nPos - 1 ) .. string.sub( sLine, nPos + 1 )
-                    nPos = nPos - 1                    
-                    redraw()
-                end
-            elseif param == keys.home then
-                -- Home
-                redraw(" ")
-                nPos = 0
-                redraw()        
-            elseif param == keys.delete then
-                -- Delete
-                if nPos < string.len(sLine) then
-                    redraw(" ")
-                    sLine = string.sub( sLine, 1, nPos ) .. string.sub( sLine, nPos + 2 )                
-                    redraw()
-                end
-            elseif param == keys["end"] then
-                -- End
-                redraw(" ")
-                nPos = string.len(sLine)
-                redraw()
-            end
+		elseif sEvent == "key" then
+			if param == keys.enter then
+				-- Enter
+				break
+				
+			elseif param == keys.left then
+				-- Left
+				if nPos > 0 then
+					nPos = nPos - 1
+					redraw()
+				end
+				
+			elseif param == keys.right then
+				-- Right                
+				if nPos < string.len(sLine) then
+					redraw(" ")
+					nPos = nPos + 1
+					redraw()
+				end
+			
+			elseif param == keys.up or param == keys.down then
+				-- Up or down
+				if _tHistory then
+					redraw(" ")
+					if param == keys.up then
+						-- Up
+						if nHistoryPos == nil then
+							if #_tHistory > 0 then
+								nHistoryPos = #_tHistory
+							end
+						elseif nHistoryPos > 1 then
+							nHistoryPos = nHistoryPos - 1
+						end
+					else
+						-- Down
+						if nHistoryPos == #_tHistory then
+							nHistoryPos = nil
+						elseif nHistoryPos ~= nil then
+							nHistoryPos = nHistoryPos + 1
+						end                        
+					end
+					if nHistoryPos then
+						sLine = _tHistory[nHistoryPos]
+						nPos = string.len( sLine ) 
+					else
+						sLine = ""
+						nPos = 0
+					end
+					redraw()
+				end
+			elseif param == keys.backspace then
+				-- Backspace
+				if nPos > 0 then
+					redraw(" ")
+					sLine = string.sub( sLine, 1, nPos - 1 ) .. string.sub( sLine, nPos + 1 )
+					nPos = nPos - 1                    
+					redraw()
+				end
+			elseif param == keys.home then
+				-- Home
+				redraw(" ")
+				nPos = 0
+				redraw()        
+			elseif param == keys.delete then
+				-- Delete
+				if nPos < string.len(sLine) then
+					redraw(" ")
+					sLine = string.sub( sLine, 1, nPos ) .. string.sub( sLine, nPos + 2 )                
+					redraw()
+				end
+			elseif param == keys["end"] then
+				-- End
+				redraw(" ")
+				nPos = string.len(sLine)
+				redraw()
+			end
 
-        elseif sEvent == "term_resize" or (event[1]=="monitor_resize" and event[2]==side)  then
+		elseif sEvent == "term_resize" or (event[1]=="monitor_resize" and event[2]==side)  then
 			if type(state)=="table" then state.resized=true end
-            -- Terminal resized
-            w = lastCharPos or term.getSize()
-            redraw()
+			-- Terminal resized
+			w = lastCharPos or term.getSize()
+			redraw()
 			break
 		elseif sEvent=="timer" then
 			if type(state)=="table" and event[2]==state.autoSave and type(state.safety)=="table" and not state.safety.noFSsave then
 				state.doAutoSave=true
 			end
-        end
-    end
+		end
+	end
 	if _tHistory and sLine~="" then
 		local k=1
 		while k<=#_tHistory do
@@ -206,12 +206,12 @@ end
 		end
 		table.insert(_tHistory,sLine)
 	end
-    local cx, cy = term.getCursorPos()
-    term.setCursorBlink( false )
-    term.setCursorPos( w + 1, cy )
-    --print()
-    
-    return sLine,event
+	local cx, cy = term.getCursorPos()
+	term.setCursorBlink( false )
+	term.setCursorPos( w + 1, cy )
+	--print()
+
+	return sLine,event
 end
 
 --[[]]function historyAdd(_tHistory,sLine)
@@ -5222,7 +5222,7 @@ How to use:
     this allows creation of a table and possibility to edit one (tables are stored in serialized files)
     
     Optional arguments are in square brackets
-	
+
 2.  To get more help press F1 inside the program. There is everything you will need to know
 
 3.  Or load it as API and then
@@ -5238,16 +5238,15 @@ xPos,yPos
     position of the window relative to
     1st "pixel" in terminal
     defaults to 1,1 (corner)
-					
+
 colored
     boolean allowing to set coloring
     defaults to true
 side
-	just used to tell the program
-	to which side the term was redirected
-					
-]]
-	)
+    just used to tell the program
+    to which side the term was redirected
+
+]])
 else
 	local function lookForMe(where,seen)
 		seen=seen or {}
