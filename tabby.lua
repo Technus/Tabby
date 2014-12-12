@@ -3164,7 +3164,7 @@ local function mouseDrag(place,state,entrycount,event,eventOld)
 		elseif entrycount<place.yShift+state.yTextSize then
 			if entrycount<=state.yTextSize then
 				place.yShift=0
-				if place.yCursor>entrycount then
+				if place.yCursor and place.yCursor>entrycount then
 					place.yCursor=entrycount
 				end
 			else
