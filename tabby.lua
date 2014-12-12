@@ -3229,6 +3229,8 @@ local function execMenu(state,wrapped,choice)
 				end
 				state.selectionPresent=false
 				state.place="main"
+				state.yCursor=1
+				state.yShift=0
 			end
 		end,
 	[7]=function(state,wrapped) 
@@ -3246,6 +3248,14 @@ local function execMenu(state,wrapped,choice)
 				end
 				state.selectionPresent=false
 				state.place="main"
+				state.yCursor=1
+				state.yShift=0
+				state["threadAlias"].yCursor=1
+				state["threadAlias"].yShift=0
+				state["functionAlias"].yCursor=1
+				state["functionAlias"].yShift=0
+				state["tableAlias"].yCursor=1
+				state["tableAlias"].yShift=0
 			end
 		end,
 	[8]=function(state,wrapped)
@@ -3278,6 +3288,14 @@ local function execMenu(state,wrapped,choice)
 				end
 				state.selectionPresent=false
 				state.place="main"
+				state.yCursor=1
+				state.yShift=0
+				state["threadAlias"].yCursor=1
+				state["threadAlias"].yShift=0
+				state["functionAlias"].yCursor=1
+				state["functionAlias"].yShift=0
+				state["tableAlias"].yCursor=1
+				state["tableAlias"].yShift=0
 			end
 		end,
 	[10]=function(state) state.exec=false end,
@@ -5268,4 +5286,4 @@ Try "tabby help"
  or "tabby edit FILENAME"
  or "tabby resume"]])
 	end
-en
+end
