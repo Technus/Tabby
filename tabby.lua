@@ -15,6 +15,19 @@ end
 _G.table.pack=_G.pack
 _G.table.unpack=unpack
 
+--fun fact in functions for ex.
+--_t={}
+--modify(_t)
+--function modify(tab) tab={ANYTHING} end                   will not modify _t  
+--function modify(tab) for k in pairs(tab) ... end end      but this will
+
+--so it is good idea to pack tables in tables then you can use both
+--_t={}
+--modify({_t})
+--function modify(tab) tab[1]=ANYTHING end
+--function modify(tab) for k in pairs(tab[1]) ... end end
+
+
 --[[]]function stringSplit(str, inSplitPattern, outResults )
   if type(str)~="string" or type(inSplitPattern)~="string" or (type(outResults)~="nil" and type(outResults)~="table") then 
     return {},false
@@ -575,6 +588,68 @@ end
 	return true
 end
 
+--[[]]function tableDuplicate(tab)
+	if type(tab)~="table" then tab={tab} end
+	local outTable={}
+	local duplicates={tab}
+	local newDuplicates={outTable}
+	local function itIsTable(tab,where,duplicates,newDuplicates)
+		for k,v in pairs(tab) do
+			if type(k)=="table" then
+				local temp={}
+				local test=false
+				for k1,v1 in ipairs(duplicates) do
+					if k==v1 then test=k1 end
+				end
+				if not test then
+					temp={}
+					table.insert(duplicates,k)
+					table.insert(newDuplicates,temp)
+					itIsTable(k,temp,duplicates,newDuplicates)
+				else
+					temp=newDuplicates[test]
+				end
+				
+				if type(v)=="table" then
+					local test=false
+					for k1,v1 in ipairs(duplicates) do
+						if v==v1 then test=k1 end
+					end
+					if not test then
+						where[temp]={}
+						table.insert(duplicates,v)
+						table.insert(newDuplicates,where[temp])
+						itIsTable(v,where[temp],duplicates,newDuplicates)
+					else
+						where[temp]=newDuplicates[test]
+					end
+				else
+					where[temp]=v
+				end
+			else
+				if type(v)=="table" then
+					local test=false
+					for k1,v1 in ipairs(duplicates) do
+						if v==v1 then test=k1 end
+					end
+					if not test then
+						where[k]={}
+						table.insert(duplicates,v)
+						table.insert(newDuplicates,where[k])
+						itIsTable(v,where[k],duplicates,newDuplicates)
+					else
+						where[k]=newDuplicates[test]
+					end
+				else
+					where[k]=v
+				end
+			end
+		end
+	end
+	itIsTable(tab,outTable,duplicates,newDuplicates)
+	return outTable
+end
+
 --[[]]function solveDepths(wrapped)
 	--changes depth levels to correct ones
 	local depthMeasured=1
@@ -977,68 +1052,6 @@ local function unwrapTable(wrapped)--use wrappedToTable
 	end
 	fill(wrapped,wrapped.tables.selfValue,1)
 	return wrapped.tables.selfValue
-end
-
---[[]]function tableDuplicate(tab)
-	if type(tab)~="table" then tab={tab} end
-	local outTable={}
-	local duplicates={tab}
-	local newDuplicates={outTable}
-	local function itIsTable(tab,where,duplicates,newDuplicates)
-		for k,v in pairs(tab) do
-			if type(k)=="table" then
-				local temp={}
-				local test=false
-				for k1,v1 in ipairs(duplicates) do
-					if k==v1 then test=k1 end
-				end
-				if not test then
-					temp={}
-					table.insert(duplicates,k)
-					table.insert(newDuplicates,temp)
-					itIsTable(k,temp,duplicates,newDuplicates)
-				else
-					temp=newDuplicates[test]
-				end
-				
-				if type(v)=="table" then
-					local test=false
-					for k1,v1 in ipairs(duplicates) do
-						if v==v1 then test=k1 end
-					end
-					if not test then
-						where[temp]={}
-						table.insert(duplicates,v)
-						table.insert(newDuplicates,where[temp])
-						itIsTable(v,where[temp],duplicates,newDuplicates)
-					else
-						where[temp]=newDuplicates[test]
-					end
-				else
-					where[temp]=v
-				end
-			else
-				if type(v)=="table" then
-					local test=false
-					for k1,v1 in ipairs(duplicates) do
-						if v==v1 then test=k1 end
-					end
-					if not test then
-						where[k]={}
-						table.insert(duplicates,v)
-						table.insert(newDuplicates,where[k])
-						itIsTable(v,where[k],duplicates,newDuplicates)
-					else
-						where[k]=newDuplicates[test]
-					end
-				else
-					where[k]=v
-				end
-			end
-		end
-	end
-	itIsTable(tab,outTable,duplicates,newDuplicates)
-	return outTable
 end
 
 --[[]]function tableToWrapped(input)
@@ -3139,6 +3152,28 @@ local function sureDlg(state,msg,size)
 	return decision
 end
 
+local function mouseDrag(place,state,entrycount,event,eventOld)
+	if (eventOld[1]=="mouse_drag" or eventOld[1]=="mouse_click") and eventOld[2]==1 then
+		local xDiv=eventOld[3]-event[3]
+		local yDiv=eventOld[4]-event[4]
+		navShiftText(place,xDiv)
+		
+		place.yShift=place.yShift+yDiv
+		if place.yShift<0 or entrycount==0 then 
+			place.yShift=0 
+		elseif entrycount<place.yShift+state.yTextSize then
+			if entrycount<=state.yTextSize then
+				place.yShift=0
+				if place.yCursor>entrycount then
+					place.yCursor=entrycount
+				end
+			else
+				place.yShift=entrycount-state.yTextSize
+			end
+		end
+	end
+end
+
 local function xShiftGoTo(place,state,previous,input)
 	place.xShift=math.floor(math.abs(tonumber(input or readEX(nil,nil,"",state.xMin+6,state)) or previous or 0 ))
 end
@@ -3186,6 +3221,7 @@ local function execMenu(state,wrapped,choice)
 			local cx,cy=term.getCursorPos()
 			term.setCursorPos(state.xTextMin,cy)
 			if sureDlg(state,"Really? ",state.xTextSize) then
+				--wrapTable(wrapped,wrapped)
 				wrapTable({},wrapped)
 				state.selection={}
 				for k=1,#wrapped.values do
@@ -3199,7 +3235,10 @@ local function execMenu(state,wrapped,choice)
 			local cx,cy=term.getCursorPos()
 			term.setCursorPos(state.xTextMin,cy)
 			if sureDlg(state,"Really? ",state.xTextSize) then
-				wrapped=state.template
+				local template=tableDuplicate(state.template)
+				for k in pairs(wrapped) do
+					wrapped[k]=template[k]
+				end
 				wrapTable({},wrapped)
 				state.selection={}
 				for k=1,#wrapped.values do
@@ -3245,7 +3284,8 @@ local function execMenu(state,wrapped,choice)
 	[11]=function(state) if not state.safety.noExit then state.exec=false state.terminated=true end end	
 	}
 	
-	return execList[choice] and execList[choice](state,wrapped)
+	if execList[choice] then return execList[choice](state,wrapped) end
+	return false
 end
 
 local function execEvent(state,wrapped,event,eventOld)
@@ -3483,7 +3523,7 @@ local function execEvent(state,wrapped,event,eventOld)
 				end
 				state.state="pointing"
 			elseif event[2]==keys["home"] and #wrapped.values>0  then--home
-				navHome(state[state.place])
+				navHome(state)
 			elseif event[2]==keys["end"] and #wrapped.values>0  then--end
 				navEnd(state,state,#wrapped.values)
 			elseif event[2]==keys["pageUp"] and #wrapped.values>0  then--pgu
@@ -3935,26 +3975,7 @@ local function execEvent(state,wrapped,event,eventOld)
 			end
 
 		elseif event[1]=="mouse_drag" and event[2]==1 then
-			if (eventOld[1]=="mouse_drag" or eventOld[1]=="mouse_click") and eventOld[2]==1 then
-				local xDiv=eventOld[3]-event[3]
-				local yDiv=eventOld[4]-event[4]
-				navShiftText(state,xDiv)
-				
-				state.yShift=state.yShift+yDiv
-				if state.yShift<0 or #wrapped.values==0 then 
-					state.yShift=0 
-				elseif #wrapped.values<state.yShift+state.yTextSize then
-					if #wrapped.values<=state.yTextSize then
-						state.yShift=0
-						if state.yCursor>#wrapped.values then
-							state.yCursor=#wrapped.values
-						end
-					else
-						state.yShift=#wrapped.values-state.yTextSize
-					end
-				end
-			end
-
+			mouseDrag(state,state,#wrapped.values,event,eventOld)
 		elseif event[1]=="monitor_touch" and event[2]==state.side then
 			if event[4]==state.yPos then--QUIT on top bar click
 				if state.colored then
@@ -4089,7 +4110,7 @@ local function execEvent(state,wrapped,event,eventOld)
 						xShiftGoTo(state,state)
 					elseif state.xCursor==2 then
 						yShiftGoTo(state,state,nil,#wrapped.values)
-					elseif state.xCursor==3 then
+					else
 						lineGoTo(state,state,nil,#wrapped.values)
 						state.place="main"
 					end
@@ -4237,18 +4258,31 @@ local function execEvent(state,wrapped,event,eventOld)
 				navShiftText(state["menu"],1)
 				
 			elseif event[2]==keys["enter"] then
-				execMenu(state,wrapped,state.menu.yCursor+state.menu.yShift-2)
+				execMenu(state,wrapped,state["menu"].yCursor+state["menu"].yShift-2)
 			end
 		elseif event[1]=="char" then
-			
+			if event[2]=="." then
+				navShiftText(state["menu"],1)
+			elseif event[2]==">" then
+				navShiftText(state["menu"],10)
+			elseif event[2]=="," then
+				navShiftText(state["menu"],-1)
+			elseif event[2]=="<" then
+				navShiftText(state["menu"],-10)
+			end	
 		elseif event[1]=="mouse_scroll" then
 			
 		elseif event[1]=="mouse_click" then
-		
-		elseif event[1]=="mouse_drag" then
-			
-		elseif event[1]=="monitor_touch" then
-			
+			--removed main menu link
+			if event[4]-state.yPos==state["menu"].yCursor and event[2]==1 then--ON ACTUAL LINE
+				execMenu(state,wrapped,state["menu"].yCursor+state["menu"].yShift-2)
+			else--ON OTHER LINE
+				if event[4]-state.xPos+state["menu"].yShift<=state["menu"].entrycount then--ON OTHER EXISTING LINE
+					state["menu"].yCursor=event[4]-state.xPos--MOVE TO ROW
+				end
+			end
+		elseif event[1]=="mouse_drag" and event[2]==1 then
+			mouseDrag(state["menu"],state,state.menu.entrycount,event,eventOld)
 		end
 	elseif state.place=="help" then
 		if event[1]=="key" then
@@ -4300,17 +4334,43 @@ local function execEvent(state,wrapped,event,eventOld)
 				
 			elseif event[2]==keys["right"] then--r
 				navRightCursor(state["help"],3)
+			elseif event[2]==keys["enter"] then
+				if state["help"].xCursor==4 then 
+					state.place="menu"
+				else
+					state.state="editing"
+					if state.colored then
+						term.setTextColor(colors.red)
+						term.setBackgroundColor(colors.pink)
+					end
+					-- INTO readEX
+					if state["help"].xCursor==1 then
+						xShiftGoTo(state["help"],state)
+					elseif state["help"].xCursor==2 then
+						yShiftGoTo(state["help"],state,nil,state.help.entrycount)
+					else
+						lineGoTo(state["help"],state,nil,state.help.entrycount)
+						state.place="main"
+					end
+					state.state="pointing"
+				end
 			end
 		elseif event[1]=="char" then
-			
+			if event[2]=="." then
+				navShiftText(state["help"],1)
+			elseif event[2]==">" then
+				navShiftText(state["help"],10)
+			elseif event[2]=="," then
+				navShiftText(state["help"],-1)
+			elseif event[2]=="<" then
+				navShiftText(state["help"],-10)
+			end	
 		elseif event[1]=="mouse_scroll" then
 			
 		elseif event[1]=="mouse_click" then
 		
-		elseif event[1]=="mouse_drag" then
-			
-		elseif event[1]=="monitor_touch" then
-			
+		elseif event[1]=="mouse_drag" and event[2]==1 then
+			mouseDrag(state["help"],state,state.help.entrycount,event,eventOld)
 		end
 	elseif state.place=="tableAlias" then
 		if event[1]=="key" then
@@ -4367,15 +4427,21 @@ local function execEvent(state,wrapped,event,eventOld)
 				navShiftText(state["tableAlias"],1)
 			end
 		elseif event[1]=="char" then
-			
+			if event[2]=="." then
+				navShiftText(state["tableAlias"],1)
+			elseif event[2]==">" then
+				navShiftText(state["tableAlias"],10)
+			elseif event[2]=="," then
+				navShiftText(state["tableAlias"],-1)
+			elseif event[2]=="<" then
+				navShiftText(state["tableAlias"],-10)
+			end	
 		elseif event[1]=="mouse_scroll" then
 			
 		elseif event[1]=="mouse_click" then
 		
-		elseif event[1]=="mouse_drag" then
-			
-		elseif event[1]=="monitor_touch" then
-			
+		elseif event[1]=="mouse_drag" and event[2]==1 then
+			mouseDrag(state["tableAlias"],state,#wrapped.tables.values*2,event,eventOld)
 		end
 	elseif state.place=="topBarTableAlias" then
 		if event[1]=="key" then
@@ -4430,16 +4496,40 @@ local function execEvent(state,wrapped,event,eventOld)
 				
 			elseif event[2]==keys["right"] then--r
 				navRightCursor(state["tableAlias"],4)
+			elseif event[2]==keys["enter"] then
+				if state["tableAlias"].xCursor==4 then 
+					state.place="menu"
+				else
+					state.state="editing"
+					if state.colored then
+						term.setTextColor(colors.blue)
+						term.setBackgroundColor(colors.lightBlue)
+					end
+					-- INTO readEX
+					if state["tableAlias"].xCursor==1 then
+						xShiftGoTo(state["tableAlias"],state)
+					elseif state["tableAlias"].xCursor==2 then
+						yShiftGoTo(state["tableAlias"],state,nil,state.help.entrycount)
+					else
+						lineGoTo(state["tableAlias"],state,nil,state.help.entrycount)
+						state.place="main"
+					end
+					state.state="pointing"
+				end
 			end
 		elseif event[1]=="char" then
-			
+			if event[2]=="." then
+				navShiftText(state["tableAlias"],1)
+			elseif event[2]==">" then
+				navShiftText(state["tableAlias"],10)
+			elseif event[2]=="," then
+				navShiftText(state["tableAlias"],-1)
+			elseif event[2]=="<" then
+				navShiftText(state["tableAlias"],-10)
+			end	
 		elseif event[1]=="mouse_scroll" then
 			
 		elseif event[1]=="mouse_click" then
-		
-		elseif event[1]=="mouse_drag" then
-			
-		elseif event[1]=="monitor_touch" then
 			
 		end
 	elseif state.place=="functionAlias" then
@@ -4498,15 +4588,21 @@ local function execEvent(state,wrapped,event,eventOld)
 			end
 			
 		elseif event[1]=="char" then
-			
+			if event[2]=="." then
+				navShiftText(state["functionAlias"],1)
+			elseif event[2]==">" then
+				navShiftText(state["functionAlias"],10)
+			elseif event[2]=="," then
+				navShiftText(state["functionAlias"],-1)
+			elseif event[2]=="<" then
+				navShiftText(state["functionAlias"],-10)
+			end	
 		elseif event[1]=="mouse_scroll" then
 			
 		elseif event[1]=="mouse_click" then
 		
-		elseif event[1]=="mouse_drag" then
-			
-		elseif event[1]=="monitor_touch" then
-			
+		elseif event[1]=="mouse_drag" and event[2]==1 then
+			mouseDrag(state["functionAlias"],state,#wrapped.tables.values*2,event,eventOld)
 		end
 	elseif state.place=="topBarFunctionAlias" then
 		if event[1]=="key" then
@@ -4561,17 +4657,41 @@ local function execEvent(state,wrapped,event,eventOld)
 				
 			elseif event[2]==keys["right"] then--r
 				navRightCursor(state["functionAlias"],4)
+			elseif event[2]==keys["enter"] then
+				if state["functionAlias"].xCursor==4 then 
+					state.place="menu"
+				else
+					state.state="editing"
+					if state.colored then
+						term.setTextColor(colors.blue)
+						term.setBackgroundColor(colors.lightBlue)
+					end
+					-- INTO readEX
+					if state["functionAlias"].xCursor==1 then
+						xShiftGoTo(state["functionAlias"],state)
+					elseif state["functionAlias"].xCursor==2 then
+						yShiftGoTo(state["functionAlias"],state,nil,state.help.entrycount)
+					else
+						lineGoTo(state["functionAlias"],state,nil,state.help.entrycount)
+						state.place="main"
+					end
+					state.state="pointing"
+				end
 			end
 			
 		elseif event[1]=="char" then
-			
+			if event[2]=="." then
+				navShiftText(state["functionAlias"],1)
+			elseif event[2]==">" then
+				navShiftText(state["functionAlias"],10)
+			elseif event[2]=="," then
+				navShiftText(state["functionAlias"],-1)
+			elseif event[2]=="<" then
+				navShiftText(state["functionAlias"],-10)
+			end	
 		elseif event[1]=="mouse_scroll" then
 			
 		elseif event[1]=="mouse_click" then
-		
-		elseif event[1]=="mouse_drag" then
-			
-		elseif event[1]=="monitor_touch" then
 			
 		end
 	elseif state.place=="threadAlias" then
@@ -4630,15 +4750,21 @@ local function execEvent(state,wrapped,event,eventOld)
 			end
 			
 		elseif event[1]=="char" then
-			
+			if event[2]=="." then
+				navShiftText(state["threadAlias"],1)
+			elseif event[2]==">" then
+				navShiftText(state["threadAlias"],10)
+			elseif event[2]=="," then
+				navShiftText(state["threadAlias"],-1)
+			elseif event[2]=="<" then
+				navShiftText(state["threadAlias"],-10)
+			end	
 		elseif event[1]=="mouse_scroll" then
 			
 		elseif event[1]=="mouse_click" then
 		
-		elseif event[1]=="mouse_drag" then
-			
-		elseif event[1]=="monitor_touch" then
-			
+		elseif event[1]=="mouse_drag" and event[2]==1 then
+			mouseDrag(state["threadAlias"],state,#wrapped.tables.values*2,event,eventOld)
 		end
 	elseif state.place=="topBarThreadAlias" then
 		if event[1]=="key" then
@@ -4693,17 +4819,41 @@ local function execEvent(state,wrapped,event,eventOld)
 				
 			elseif event[2]==keys["right"] then--r
 				navRightCursor(state["threadAlias"],4)
+			elseif event[2]==keys["enter"] then
+				if state["threadAlias"].xCursor==4 then 
+					state.place="menu"
+				else
+					state.state="editing"
+					if state.colored then
+						term.setTextColor(colors.blue)
+						term.setBackgroundColor(colors.lightBlue)
+					end
+					-- INTO readEX
+					if state["threadAlias"].xCursor==1 then
+						xShiftGoTo(state["threadAlias"],state)
+					elseif state["threadAlias"].xCursor==2 then
+						yShiftGoTo(state["threadAlias"],state,nil,state.help.entrycount)
+					else
+						lineGoTo(state["threadAlias"],state,nil,state.help.entrycount)
+						state.place="main"
+					end
+					state.state="pointing"
+				end
 			end
 			
 		elseif event[1]=="char" then
-			
+			if event[2]=="." then
+				navShiftText(state["threadAlias"],1)
+			elseif event[2]==">" then
+				navShiftText(state["threadAlias"],10)
+			elseif event[2]=="," then
+				navShiftText(state["threadAlias"],-1)
+			elseif event[2]=="<" then
+				navShiftText(state["threadAlias"],-10)
+			end	
 		elseif event[1]=="mouse_scroll" then
 			
 		elseif event[1]=="mouse_click" then
-		
-		elseif event[1]=="mouse_drag" then
-			
-		elseif event[1]=="monitor_touch" then
 			
 		end
 	end
@@ -5118,5 +5268,4 @@ Try "tabby help"
  or "tabby edit FILENAME"
  or "tabby resume"]])
 	end
-end
-
+en
