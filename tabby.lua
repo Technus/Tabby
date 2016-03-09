@@ -7,13 +7,13 @@ local block = false
 --for more info go to ComputerCraftForums and/or GitHub
 
 --you can always use pack/unpack (table.pack/table.unpack) to use tabby on sets of variables :D
-
+--[[<<]]
 --just a little bit of HARDCODED stuff
 _G.pack=function (...) --works like {STUFF,STUFFMORE,STUFFMOAR,...}
 	return {...}
 end
 _G.table.pack=_G.pack
-_G.table.unpack=unpack
+_G.table.read=unpack
 
 --fun fact in functions for ex.
 --_t={}
@@ -27,13 +27,13 @@ _G.table.unpack=unpack
 --function modify(tab) tab[1]=ANYTHING end
 --function modify(tab) for k in pairs(tab[1]) ... end end
 
-
 --[[]]function stringSplit(str, inSplitPattern, outResults )
-	if type(str)~="string" or type(inSplitPattern)~="string" or (type(outResults)~="nil" and type(outResults)~="table") then
+	if type(str)~="string" or type(inSplitPattern)~="string" or 
+	(type(outResults)~="nil" and type(outResults)~="table") then
 		return {},false
 	end
 	if type(outResults)~="table" then
-		outResults = { }
+		outResults = {}
 	end
 	local theStart = 1
 	local theSplitStart, theSplitEnd = string.find( str, inSplitPattern, theStart )
@@ -1049,6 +1049,7 @@ local function unwrapTable(wrapped)--use wrappedToTable
 			end
 			entry=entry+1
 		end
+		return entry
 	end
 	fill(wrapped,wrapped.tables.selfValue,1)
 	return wrapped.tables.selfValue
@@ -1293,6 +1294,7 @@ end
 	end
 end
 
+--[[>>]]
 --FUNCTIONS FOR MAIN EXECUTABLE
 
 local function xCursorName(input)
@@ -3306,7 +3308,10 @@ local function execMenu(state,wrapped,choice)
 end
 
 local function execEvent(state,wrapped,event,eventOld)
-	--GLOBALIZED EVENTS
+----GLOBAL//LOCAL--EVENT_1	----SCREEN	--HISTORYDEPENDANT	--//PLACE
+--++EVENT					--++EVENT_#						--++EVENT_#
+							--^^PLACE
+							--++EVENT_#
 	if event[1]=="timer" then
 		if event[2]==state.timerInstance and not state.colored then
 			state.timer=not state.timer
@@ -3314,49 +3319,63 @@ local function execEvent(state,wrapped,event,eventOld)
 		elseif event[2]==state.autoSave and not state.safety.noFSsave then
 			state.doAutoSave=true
 		end
-	elseif event[1]=="terminate" then
-		state.exec=false
-		state.terminated=true
-	elseif event[1]=="mouse_click" and event[3]==state.xMax and event[4]==state.yMin then--global get back to menu
-		state.place="menu"
-	elseif event[1]=="mouse_click" and event[3]==state.xMax-1 and event[4]==state.yMin then
-		--get some on screen keyboard
-	elseif event[1]=="term_resize" or (event[1]=="monitor_resize" and event[2]==state.side) then
-		state.resized=true
-	--LOCALISED EVENTS
-	elseif state.place=="main" then
+	elseif event[1]=="terminate" then state.exec=false state.terminated=true
+	elseif event[1]=="mouse_click" and event[3]==state.xMax and event[4]==state.yMin then state.place="menu"
+	elseif event[1]=="mouse_click" and event[3]==state.xMax-1 and event[4]==state.yMin then--get some on screen keyboard rolling
+		
+	elseif event[1]=="term_resize" or (event[1]=="monitor_resize" and event[2]==state.side) then state.resized=true
+	elseif state.place=="main" or state.place=="topBar" then--SCREEN--MAIN	 --LOCALISED EVENTS				
 		if event[1]=="key" then
-			if event[2]==keys["tab"] then--tab
-				state.place="topBar"--MOVE
-
-			elseif event[2]==keys["f8"] or event[2]==keys["e"] then--f1
-				state.place=state.placePrevious or "main"
-
-			elseif event[2]==keys["f1"] then--f1
-				state.place="help"
-
-			elseif event[2]==keys["f3"] or event[2]==keys["t"] then--f3
-				state.place="tableAlias"
-				--table Alias
-				--try to get pointed Tab
-				--insert?
-
-			elseif event[2]==keys["f5"] or event[2]==keys["h"] then--f5
-				state.place="threadAlias"
-				--function alias
-				--try to get pointed fun
-				--insert?
-
-			elseif event[2]==keys["f4"] or event[2]==keys["f"] then--f4
-				state.place="functionAlias"
-				--function alias
-				--try to get pointed fun
-				--insert?
-
-			elseif event[2]==keys["f12"] or event[2]==keys["m"] then--f1,mm
-				state.place="menu"
-
-			elseif event[2]==keys["apostrophe"] and #wrapped.values>0 then--'
+			if event[2]==keys["tab"] then state.place=(state.place=="topBar" and "main") or "topBar"
+			elseif event[2]==keys["slash"] then state.xShift=0
+			elseif event[2]==keys["grave"] or event[2]==keys["f10"] then state.exec=false
+			elseif event[2]==keys["f8"] or event[2]==keys["e"] then state.place=state.placePrevious or "main"
+			elseif event[2]==keys["f1"] then state.place="help"
+			elseif event[2]==keys["f3"] or event[2]==keys["t"] then		state.place="tableAlias"
+			elseif event[2]==keys["f5"] or event[2]==keys["h"] then		state.place="threadAlias"
+			elseif event[2]==keys["f4"] or event[2]==keys["f"] then		state.place="functionAlias"
+			elseif event[2]==keys["f12"] or event[2]==keys["m"] then	state.place="menu"
+			elseif event[2]==keys["home"] and wrapped.values[1] then		navHome(state)
+			elseif event[2]==keys["end"] and wrapped.values[1] then			navEnd(state,state,#wrapped.values)
+			elseif event[2]==keys["pageUp"] and wrapped.values[1] then		navPageUp(state,state,#wrapped.values)
+			elseif event[2]==keys["pageDown"] and wrapped.values[1] then	navPageDown(state,state,#wrapped.values)
+			elseif event[2]==keys["up"] and wrapped.values[1] then			navUp(state,state,#wrapped.values)
+			elseif event[2]==keys["down"] and wrapped.values[1] then		navDown(state,state,#wrapped.values)
+			elseif event[2]==keys["left"] and wrapped.values[1] then		navLeftCursor(state,4)
+			elseif event[2]==keys["right"] and wrapped.values[1] then		navRightCursor(state,4)
+			elseif event[2]==keys["backslash"] then solveDepths(wrapped)
+			elseif wrapped.values[1]  and state.place=="main" and --SPECIAL EVENT
+				( event[2]==keys["f7"] or (event[2]==keys["enter"] and ((eventOld[2]==keys["leftCtrl"] or eventOld[2]==157) and eventOld[1]=="key")) ) then--f7 or ctrl enter EDIT PROTECTED
+					--does not have correct value-> keys["rightCtrl"]
+					local curTempX,curTempY=term.getCursorPos()
+					term.setCursorPos(state.xTextMin,state.yPos+state.yCursor)
+				if state.colored then
+					term.setTextColor(colors.green)
+					term.setBackgroundColor(colors.lime)
+				end
+				local assignType=false
+				if wrapped["values"][state.yCursor+state.yShift]=="" and wrapped["types"][state.yCursor+state.yShift]=="-" then
+					assignType=true
+				end
+				if wrapped["values"][state.yCursor+state.yShift] then
+					if not wrapped.protected[state.yCursor+state.yShift] then
+						historyAdd(state.history["values"],wrapped["values"][state.yCursor+state.yShift])
+					end
+					wrapped.protected[state.yCursor+state.yShift]=true
+					wrapped["values"][state.yCursor+state.yShift]=
+					readEX("*",nil,tostring(wrapped["values"][state.yCursor+state.yShift]),state.xTextMax,state)
+				end
+				if assignType then
+					if wrapped["values"][state.yCursor+state.yShift]=="true" or wrapped["values"][state.yCursor+state.yShift]=="false" then
+						wrapped["types"][state.yCursor+state.yShift]="b"
+					elseif tonumber(wrapped["values"][state.yCursor+state.yShift]) then
+						wrapped["types"][state.yCursor+state.yShift]="n"
+					elseif #wrapped["values"][state.yCursor+state.yShift]>0 then
+						wrapped["types"][state.yCursor+state.yShift]="s"
+					end
+				end
+				term.setCursorPos(curTempX,curTempY)
+			elseif event[2]==keys["apostrophe"] and wrapped.values[1] then--' select/deselect
 				state.selection[state.yCursor+state.yShift]=not state.selection[state.yCursor+state.yShift]
 				if state.selection[state.yCursor+state.yShift] then
 					state.selectionPresent=true
@@ -3366,7 +3385,95 @@ local function execEvent(state,wrapped,event,eventOld)
 						if v==true then state.selectionPresent=true break end
 					end
 				end
-			elseif event[2]==keys["leftBracket"] and #wrapped.values>0 then--[
+			elseif event[2]==keys["enter"] and eventOld[1]=="key" and (eventOld[2]==keys["leftShift"] or eventOld[2]==keys["rightShift"]) then--SHIFT ENTER DIALOGS
+				if state.place=="topBar" then 
+					
+				else
+					if state.xCursor==2 then
+						wrapped.depths[state.yCursor+state.yShift]=main2Dlg(state,wrapped.depths[state.yCursor+state.yShift],wrapped,state.yCursor+state.yShift)
+					elseif state.xCursor==3 then
+						wrapped.types[state.yCursor+state.yShift]=main3Dlg(state,wrapped.types[state.yCursor+state.yShift],wrapped,state.yCursor+state.yShift)
+					end
+				end
+
+			elseif event[2]==keys["enter"] then--enter EDIT
+				if state.place=="topBar" then
+					if state.xCursor==4 then
+						state.place="menu"
+					else-- INTO readEX
+						if state.colored then
+							term.setTextColor(colors.red)
+							term.setBackgroundColor(colors.pink)
+						end
+						if state.xCursor==1 then
+							xShiftGoTo(state,state)
+						elseif state.xCursor==2 then
+							yShiftGoTo(state,state,nil,#wrapped.values)
+						else
+							lineGoTo(state,state,nil,#wrapped.values)
+							state.place="main"
+						end
+					end
+				elseif #wrapped.values>0 then--"main"
+					if state.colored then
+						term.setTextColor(colors.red)
+						term.setBackgroundColor(colors.pink)
+					end
+					if wrapped[xCursorName(state.xCursor)][state.yCursor+state.yShift] then-- INTO readEX
+						local temp
+						if wrapped.protected[state.yCursor+state.yShift] and state.xCursor==4 then
+							wrapped.protected[state.yCursor+state.yShift]=false
+							wrapped.values[state.yCursor+state.yShift]=""
+						end
+						if state.xCursor<4 then
+							term.setCursorPos(state.xPos,state.yPos+state.yCursor)
+							temp=readEX(nil,state.history[xCursorName(state.xCursor)],tostring(wrapped[xCursorName(state.xCursor)][state.yCursor+state.yShift]),state.xPos+3,state)
+						else
+							temp=readEX(nil,state.history[xCursorName(state.xCursor)],tostring(wrapped[xCursorName(state.xCursor)][state.yCursor+state.yShift]),state.xTextMax,state)
+						end
+						if state.xCursor==4 then
+							local assignType=false
+							if wrapped["values"][state.yCursor+state.yShift]=="" and wrapped["types"][state.yCursor+state.yShift]=="-" then
+								assignType=true
+							end
+							wrapped["values"][state.yCursor+state.yShift]=temp
+							if assignType then
+								if wrapped["values"][state.yCursor+state.yShift]=="true" or wrapped["values"][state.yCursor+state.yShift]=="false" then
+									wrapped["types"][state.yCursor+state.yShift]="b"
+								elseif tonumber(wrapped["values"][state.yCursor+state.yShift]) then
+									wrapped["types"][state.yCursor+state.yShift]="n"
+								elseif #wrapped["values"][state.yCursor+state.yShift]>0 then
+									wrapped["types"][state.yCursor+state.yShift]="s"
+								end
+							end
+						else
+							if state.xCursor==1 then
+								temp=string.upper(temp)
+								if temp=="KEY" then temp="K" end
+								temp=string.sub(temp,#temp,#temp)
+								if temp~="K" then temp="V" end
+								if temp==wrapped[xCursorName(state.xCursor)][state.yCursor+state.yShift] then
+									if temp=="K" then temp="V" else temp="K" end
+								end
+							end
+	
+							if state.xCursor==2 then
+								temp=math.floor(tonumber(temp) or wrapped[xCursorName(state.xCursor)][state.yCursor+state.yShift])
+								if temp==wrapped[xCursorName(state.xCursor)][state.yCursor+state.yShift] then
+									temp=-wrapped[xCursorName(state.xCursor)][state.yCursor+state.yShift]
+								end
+							end
+							if state.xCursor==3 then
+								temp=string.lower(temp)
+								temp=typeCheck(temp) or typeCheck(string.sub(temp,#temp,#temp)) or wrapped[xCursorName(state.xCursor)][state.yCursor+state.yShift]
+							end
+	
+	
+							wrapped[xCursorName(state.xCursor)][state.yCursor+state.yShift]=temp
+						end
+					end
+				end
+			elseif event[2]==keys["leftBracket"] and wrapped.values[1] then--[ shift
 				if state.selectionPresent then
 				--check start / move it to end
 					if state.selection[1] then
@@ -3404,7 +3511,7 @@ local function execEvent(state,wrapped,event,eventOld)
 						state.yShift=#wrapped.kinds-state.yTextSize
 					end
 				end
-			elseif event[2]==keys["rightBracket"] and #wrapped.values>0 then--]
+			elseif event[2]==keys["rightBracket"] and wrapped.values[1] then--] shift 
 				if state.selectionPresent then
 				--check start / move it to end
 					if state.selection[#state.selection] then
@@ -3437,241 +3544,108 @@ local function execEvent(state,wrapped,event,eventOld)
 					state.yCursor=1
 					state.yShift=0
 				end
-			elseif event[2]==keys["enter"] and eventOld[1]=="key" and (eventOld[2]==keys["leftShift"] or eventOld[2]==keys["rightShift"]) then
-				if state.xCursor==2 then
-					wrapped.depths[state.yCursor+state.yShift]=main2Dlg(state,wrapped.depths[state.yCursor+state.yShift],wrapped,state.yCursor+state.yShift)
-				elseif state.xCursor==3 then
-					wrapped.types[state.yCursor+state.yShift]=main3Dlg(state,wrapped.types[state.yCursor+state.yShift],wrapped,state.yCursor+state.yShift)
-				end
-			elseif ( event[2]==keys["f7"] or (event[2]==keys["enter"] and ((eventOld[2]==keys["leftCtrl"] or eventOld[2]==157--[[does not have correct value-> keys["rightCtrl"] ]]) and eventOld[1]=="key")) ) and #wrapped.values>0 then--f7 or ctrl enter
-				state.state="editing"
-				local curTempX,curTempY=term.getCursorPos()
-				term.setCursorPos(state.xTextMin,state.yPos+state.yCursor)
-				if state.colored then
-					term.setTextColor(colors.green)
-					term.setBackgroundColor(colors.lime)
-				end
-				--protected input
-				--add new protected
-				--edit variable value
-				local assignType=false
-				if wrapped["values"][state.yCursor+state.yShift]=="" and wrapped["types"][state.yCursor+state.yShift]=="-" then
-					assignType=true
-				end
-				if wrapped["values"][state.yCursor+state.yShift] then
-					if not wrapped.protected[state.yCursor+state.yShift] then
-						historyAdd(state.history["values"],wrapped["values"][state.yCursor+state.yShift])
-					end
-					wrapped.protected[state.yCursor+state.yShift]=true
-					wrapped["values"][state.yCursor+state.yShift]=
-					readEX("*",nil,tostring(wrapped["values"][state.yCursor+state.yShift]),state.xTextMax,state)
-				end
-				if assignType then
-					if wrapped["values"][state.yCursor+state.yShift]=="true" or wrapped["values"][state.yCursor+state.yShift]=="false" then
-						wrapped["types"][state.yCursor+state.yShift]="b"
-					elseif tonumber(wrapped["values"][state.yCursor+state.yShift]) then
-						wrapped["types"][state.yCursor+state.yShift]="n"
-					elseif #wrapped["values"][state.yCursor+state.yShift]>0 then
-						wrapped["types"][state.yCursor+state.yShift]="s"
-					end
-				end
-				term.setCursorPos(curTempX,curTempY)
-				state.state="pointing"
-
-			elseif event[2]==keys["enter"] and #wrapped.values>0 then--enter
-				state.state="editing"
-				if state.colored then
-					term.setTextColor(colors.red)
-					term.setBackgroundColor(colors.pink)
-				end
-				-- INTO readEX
-				if wrapped[xCursorName(state.xCursor)][state.yCursor+state.yShift] then
-					local temp
-					if wrapped.protected[state.yCursor+state.yShift] and state.xCursor==4 then
-						wrapped.protected[state.yCursor+state.yShift]=false
-						wrapped.values[state.yCursor+state.yShift]=""
-					end
-					if state.xCursor<4 then
-						term.setCursorPos(state.xPos,state.yPos+state.yCursor)
-						temp=readEX(nil,state.history[xCursorName(state.xCursor)],tostring(wrapped[xCursorName(state.xCursor)][state.yCursor+state.yShift]),state.xPos+3,state)
-					else
-						temp=readEX(nil,state.history[xCursorName(state.xCursor)],tostring(wrapped[xCursorName(state.xCursor)][state.yCursor+state.yShift]),state.xTextMax,state)
-					end
-					if state.xCursor==4 then
-						local assignType=false
-						if wrapped["values"][state.yCursor+state.yShift]=="" and wrapped["types"][state.yCursor+state.yShift]=="-" then
-							assignType=true
-						end
-						wrapped["values"][state.yCursor+state.yShift]=temp
-						if assignType then
-							if wrapped["values"][state.yCursor+state.yShift]=="true" or wrapped["values"][state.yCursor+state.yShift]=="false" then
-								wrapped["types"][state.yCursor+state.yShift]="b"
-							elseif tonumber(wrapped["values"][state.yCursor+state.yShift]) then
-								wrapped["types"][state.yCursor+state.yShift]="n"
-							elseif #wrapped["values"][state.yCursor+state.yShift]>0 then
-								wrapped["types"][state.yCursor+state.yShift]="s"
-							end
-						end
-					else
-						if state.xCursor==1 then
-							temp=string.upper(temp)
-							if temp=="KEY" then temp="K" end
-							temp=string.sub(temp,#temp,#temp)
-							if temp~="K" then temp="V" end
-							if temp==wrapped[xCursorName(state.xCursor)][state.yCursor+state.yShift] then
-								if temp=="K" then temp="V" else temp="K" end
-							end
-						end
-
-						if state.xCursor==2 then
-							temp=math.floor(tonumber(temp) or wrapped[xCursorName(state.xCursor)][state.yCursor+state.yShift])
-							if temp==wrapped[xCursorName(state.xCursor)][state.yCursor+state.yShift] then
-								temp=-wrapped[xCursorName(state.xCursor)][state.yCursor+state.yShift]
-							end
-						end
-						if state.xCursor==3 then
-							temp=string.lower(temp)
-							temp=typeCheck(temp) or typeCheck(string.sub(temp,#temp,#temp)) or wrapped[xCursorName(state.xCursor)][state.yCursor+state.yShift]
-						end
-
-
-						wrapped[xCursorName(state.xCursor)][state.yCursor+state.yShift]=temp
-					end
-				end
-				state.state="pointing"
-			elseif event[2]==keys["home"] and #wrapped.values>0 then--home
-				navHome(state)
-			elseif event[2]==keys["end"] and #wrapped.values>0 then--end
-				navEnd(state,state,#wrapped.values)
-			elseif event[2]==keys["pageUp"] and #wrapped.values>0 then--pgu
-				navPageUp(state,state,#wrapped.values)
-			elseif event[2]==keys["pageDown"] and #wrapped.values>0 then--pgd
-				navPageDown(state,state,#wrapped.values)
-			elseif event[2]==keys["up"] and #wrapped.values>0 then--u
-				navUp(state,state,#wrapped.values)
-			elseif event[2]==keys["down"] and #wrapped.values>0 then--d
-				navDown(state,state,#wrapped.values)
-			elseif event[2]==keys["left"] and #wrapped.values>0 then--l
-				navLeftCursor(state,4)
-			elseif event[2]==keys["right"] and #wrapped.values>0 then--r
-				navRightCursor(state,4)
-			elseif event[2]==keys["s"] then--s
-				sleep(0)
-				execMenu(state,wrapped,8)
-			elseif event[2]==keys["l"] then--l
-				sleep(0)
-				execMenu(state,wrapped,9)
-			elseif event[2]==keys["backslash"] then--\
-				solveDepths(wrapped)
-			elseif ( event[2]==keys["delete"] or event[2]==keys["backspace"] or event[2]==keys["d"] ) and #wrapped.values>0 then--delete or bks space
-				--table.remove pair
-				if wrapped.kinds[state.yCursor+state.yShift]=="K" and
-				wrapped.types[state.yCursor+state.yShift]~="t" and
-				wrapped.types[state.yCursor+state.yShift+1]~="t" and
-				wrapped.types[state.yCursor+state.yShift]~="x" and
-				wrapped.types[state.yCursor+state.yShift+1]~="x" and
-				wrapped.kinds[state.yCursor+state.yShift+1]=="V" then
-					local temp=state.yCursor+state.yShift
-					table.remove(wrapped.kinds, temp)
-					table.remove(wrapped.kinds, temp)
-					table.remove(wrapped.depths,temp)
-					table.remove(wrapped.depths,temp)
-					table.remove(wrapped.types, temp)
-					table.remove(wrapped.types, temp)
-					table.remove(wrapped.values,temp)
-					table.remove(wrapped.values,temp)
-					table.remove(state.selection,temp)
-					table.remove(state.selection,temp)
-					if #wrapped.kinds==0 then
-						state.yCursor=1
-						state.yShift=0
-					elseif state.yCursor+state.yShift>#wrapped.kinds then
-						if state.yTextSize>=#wrapped.kinds then
+			elseif state.place=="main" then
+				if ( event[2]==keys["delete"] or event[2]==keys["backspace"] or event[2]==keys["d"] ) and wrapped.values[1] then--delete or bks space
+					--table.remove pair
+					if wrapped.kinds[state.yCursor+state.yShift]=="K" and wrapped.types[state.yCursor+state.yShift]~="t" and
+					wrapped.types[state.yCursor+state.yShift+1]~="t" and wrapped.types[state.yCursor+state.yShift]~="x" and
+					wrapped.types[state.yCursor+state.yShift+1]~="x" and wrapped.kinds[state.yCursor+state.yShift+1]=="V" then
+						local temp=state.yCursor+state.yShift
+						table.remove(wrapped.kinds, temp)
+						table.remove(wrapped.kinds, temp)
+						table.remove(wrapped.depths,temp)
+						table.remove(wrapped.depths,temp)
+						table.remove(wrapped.types, temp)
+						table.remove(wrapped.types, temp)
+						table.remove(wrapped.values,temp)
+						table.remove(wrapped.values,temp)
+						table.remove(state.selection,temp)
+						table.remove(state.selection,temp)
+						if #wrapped.kinds==0 then
+							state.yCursor=1
 							state.yShift=0
-							state.yCursor=#wrapped.kinds
-						elseif state.yShift+state.yTextSize>#wrapped.kinds then
-							if state.yShift>=2 then
-								state.yShift=state.yShift-2
-							elseif state.yShift==1 then
+						elseif state.yCursor+state.yShift>#wrapped.kinds then
+							if state.yTextSize>=#wrapped.kinds then
 								state.yShift=0
-								state.yCursor=state.yCursor-1
-							else
-								state.yCursor=state.yCursor-2
+								state.yCursor=#wrapped.kinds
+							elseif state.yShift+state.yTextSize>#wrapped.kinds then
+								if state.yShift>=2 then
+									state.yShift=state.yShift-2
+								elseif state.yShift==1 then
+									state.yShift=0
+									state.yCursor=state.yCursor-1
+								else
+									state.yCursor=state.yCursor-2
+								end
 							end
 						end
-					end
-				elseif wrapped.kinds[state.yCursor+state.yShift]=="V" and
-				wrapped.types[state.yCursor+state.yShift]~="t" and
-				wrapped.types[state.yCursor+state.yShift-1]~="t" and
-				wrapped.types[state.yCursor+state.yShift]~="x" and
-				wrapped.types[state.yCursor+state.yShift-1]~="x" and
-				wrapped.kinds[state.yCursor+state.yShift-1]=="K" then
-					local temp=state.yCursor+state.yShift-1
-					table.remove(wrapped.kinds, temp)
-					table.remove(wrapped.kinds, temp)
-					table.remove(wrapped.depths,temp)
-					table.remove(wrapped.depths,temp)
-					table.remove(wrapped.types, temp)
-					table.remove(wrapped.types, temp)
-					table.remove(wrapped.values,temp)
-					table.remove(wrapped.values,temp)
-					table.remove(state.selection,temp)
-					table.remove(state.selection,temp)
-					if #wrapped.kinds==0 then
-						state.yCursor=1
-						state.yShift=0
-					elseif state.yCursor+state.yShift>#wrapped.kinds then
-						if state.yTextSize>=#wrapped.kinds then
+					elseif wrapped.kinds[state.yCursor+state.yShift]=="V" and wrapped.types[state.yCursor+state.yShift]~="t" and
+					wrapped.types[state.yCursor+state.yShift-1]~="t" and wrapped.types[state.yCursor+state.yShift]~="x" and
+					wrapped.types[state.yCursor+state.yShift-1]~="x" and wrapped.kinds[state.yCursor+state.yShift-1]=="K" then
+						local temp=state.yCursor+state.yShift-1
+						table.remove(wrapped.kinds, temp)
+						table.remove(wrapped.kinds, temp)
+						table.remove(wrapped.depths,temp)
+						table.remove(wrapped.depths,temp)
+						table.remove(wrapped.types, temp)
+						table.remove(wrapped.types, temp)
+						table.remove(wrapped.values,temp)
+						table.remove(wrapped.values,temp)
+						table.remove(state.selection,temp)
+						table.remove(state.selection,temp)
+						if #wrapped.kinds==0 then
+							state.yCursor=1
 							state.yShift=0
-							state.yCursor=#wrapped.kinds
-						elseif state.yShift+state.yTextSize>#wrapped.kinds then
-							if state.yShift>=1 then
-								state.yShift=state.yShift-1
-							else
-								state.yCursor=state.yCursor-1
+						elseif state.yCursor+state.yShift>#wrapped.kinds then
+							if state.yTextSize>=#wrapped.kinds then
+								state.yShift=0
+								state.yCursor=#wrapped.kinds
+							elseif state.yShift+state.yTextSize>#wrapped.kinds then
+								if state.yShift>=1 then
+									state.yShift=state.yShift-1
+								else
+									state.yCursor=state.yCursor-1
+								end
 							end
 						end
 					end
+				elseif event[2]==keys["insert"] or event[2]==keys["n"] then
+					--table.insert pair
+					local temp
+					if #wrapped.kinds==0 then
+						temp=1
+					elseif wrapped.kinds[state.yCursor+state.yShift]=="K" and
+					wrapped.kinds[state.yCursor+state.yShift+1]=="V" then
+						temp=state.yCursor+state.yShift+2
+					else
+						temp=state.yCursor+state.yShift+1
+					end
+					table.insert(wrapped.kinds, temp,"V")--v
+					table.insert(wrapped.kinds, temp,"K")--k
+					table.insert(wrapped.depths,temp,wrapped.depths[state.yCursor+state.yShift] or 1)
+					table.insert(wrapped.depths,temp,wrapped.depths[state.yCursor+state.yShift] or 1)
+					table.insert(wrapped.types, temp,shortType(nil))
+					table.insert(wrapped.types, temp,shortType(nil))
+					table.insert(wrapped.values,temp,"")
+					table.insert(wrapped.values,temp,"")
+					table.insert(state.selection,temp,false)
+					table.insert(state.selection,temp,false)
 				end
-			elseif event[2]==keys["insert"] or event[2]==keys["n"] then
-				--table.insert pair
-				local temp
-				if #wrapped.kinds==0 then
-					temp=1
-				elseif wrapped.kinds[state.yCursor+state.yShift]=="K" and
-				wrapped.kinds[state.yCursor+state.yShift+1]=="V" then
-					temp=state.yCursor+state.yShift+2
-				else
-					temp=state.yCursor+state.yShift+1
-				end
-				table.insert(wrapped.kinds, temp,"V")--v
-				table.insert(wrapped.kinds, temp,"K")--k
-				table.insert(wrapped.depths,temp,wrapped.depths[state.yCursor+state.yShift] or 1)
-				table.insert(wrapped.depths,temp,wrapped.depths[state.yCursor+state.yShift] or 1)
-				table.insert(wrapped.types, temp,shortType(nil))
-				table.insert(wrapped.types, temp,shortType(nil))
-				table.insert(wrapped.values,temp,"")
-				table.insert(wrapped.values,temp,"")
-				table.insert(state.selection,temp,false)
-				table.insert(state.selection,temp,false)
-
-			elseif event[2]==keys["slash"] then--/ ?
-				--get back to start
-				state.xShift=0
-
-			elseif event[2]==keys["grave"] or event[2]==keys["f10"] then--` f10
-				--exit
-				state.exec=false
 			end
-
 		elseif event[1]=="char" then
 			if event[2]=="i" then
 				state.indents=state.indents+1
-
 			elseif event[2]=="I" then
 				if state.indents>=1 then state.indents=state.indents-1 end
-
-			elseif event[2]==";" and #wrapped.values>0 then--; --all/nothing
+			elseif event[2]=="." then
+				navShiftText(state,1)
+			elseif event[2]==">" then
+				navShiftText(state,10)
+			elseif event[2]=="," then
+				navShiftText(state,-1)
+			elseif event[2]=="<" then
+				navShiftText(state,-10)
+			elseif event[2]==";" and wrapped.values[1] then--; --all/nothing
 				if state.selectionPresent then
 					for k=1,#state.selection do
 						state.selection[k]=false
@@ -3682,7 +3656,7 @@ local function execEvent(state,wrapped,event,eventOld)
 					end
 				end
 				state.selectionPresent=not state.selectionPresent
-			elseif event[2]==":" and #wrapped.values>0 then--; --invert
+			elseif event[2]==":" and wrapped.values[1] then--: --invert
 				if state.selectionPresent then
 					for k=1,#state.selection do
 						state.selection[k]=not state.selection[k]
@@ -3697,113 +3671,104 @@ local function execEvent(state,wrapped,event,eventOld)
 					end
 					state.selectionPresent=true
 				end
-
-			elseif event[2]=="x" and #wrapped.values>0 then
-				--cut
-				state.blockClipboard[xCursorName(state.xCursor)]=false
-				state.clipboard[xCursorName(state.xCursor)]=
-				wrapped[xCursorName(state.xCursor)][state.yCursor+state.yShift]
-				if state.xCursor==4 or state.xCursor==3 then
+			elseif state.place=="main" then
+				if event[2]=="x" and wrapped.values[1] then
+					--cut
+					state.blockClipboard[xCursorName(state.xCursor)]=false
+					state.clipboard[xCursorName(state.xCursor)]=
+					wrapped[xCursorName(state.xCursor)][state.yCursor+state.yShift]
+					if state.xCursor==4 or state.xCursor==3 then
+						wrapped[xCursorName(3)][state.yCursor+state.yShift]="-"
+						wrapped[xCursorName(4)][state.yCursor+state.yShift]="nil"
+					end
+	
+				elseif event[2]=="X" and wrapped.values[1] then
+					--cut row
+					for i=1,4 do
+						state.blockClipboard[xCursorName(i)]=false
+						state.clipboard[xCursorName(i)]=
+						wrapped[xCursorName(i)][state.yCursor+state.yShift]
+					end
 					wrapped[xCursorName(3)][state.yCursor+state.yShift]="-"
 					wrapped[xCursorName(4)][state.yCursor+state.yShift]="nil"
-				end
-
-			elseif event[2]=="X" and #wrapped.values>0 then
-				--cut row
-				for i=1,4 do
-					state.blockClipboard[xCursorName(i)]=false
-					state.clipboard[xCursorName(i)]=
-					wrapped[xCursorName(i)][state.yCursor+state.yShift]
-				end
-				wrapped[xCursorName(3)][state.yCursor+state.yShift]="-"
-				wrapped[xCursorName(4)][state.yCursor+state.yShift]="nil"
-
-			elseif event[2]=="c" and #wrapped.values>0 then
-				--copy
-				state.blockClipboard[xCursorName(state.xCursor)]=false
-				state.clipboard[xCursorName(state.xCursor)]=
-				wrapped[xCursorName(state.xCursor)][state.yCursor+state.yShift]
-
-			elseif event[2]=="C" and #wrapped.values>0 then
-				--copy row
-				for i=1,4 do
-					state.blockClipboard[xCursorName(i)]=false
-					state.clipboard[xCursorName(i)]=
-					wrapped[xCursorName(i)][state.yCursor+state.yShift]
-				end
-
-			elseif event[2]=="v" and #wrapped.values>0 then
-				--paste
-				if not state.blockClipboard[xCursorName(state.xCursor)] then
-					wrapped[xCursorName(state.xCursor)][state.yCursor+state.yShift]=
-					state.clipboard[xCursorName(state.xCursor)]
-				end
-
-			elseif event[2]=="V" and #wrapped.values>0 then
-				--paste row
-				for i=1,4 do
-					if not state.blockClipboard[xCursorName(i)] then
-						wrapped[xCursorName(i)][state.yCursor+state.yShift]=
-						state.clipboard[xCursorName(i)]
+	
+				elseif event[2]=="c" and wrapped.values[1] then
+					--copy
+					state.blockClipboard[xCursorName(state.xCursor)]=false
+					state.clipboard[xCursorName(state.xCursor)]=
+					wrapped[xCursorName(state.xCursor)][state.yCursor+state.yShift]
+	
+				elseif event[2]=="C" and wrapped.values[1] then
+					--copy row
+					for i=1,4 do
+						state.blockClipboard[xCursorName(i)]=false
+						state.clipboard[xCursorName(i)]=
+						wrapped[xCursorName(i)][state.yCursor+state.yShift]
 					end
-				end
-
-			elseif event[2]=="b" then
-				--paste
-				state.blockClipboard[xCursorName(state.xCursor)]=true
-
-			elseif event[2]=="B" then
-				--paste row
-				for i=1,4 do
-					state.blockClipboard[xCursorName(i)]=true
-				end
-
-			elseif event[2]=="." then
-				navShiftText(state,1)
-			elseif event[2]==">" then
-				navShiftText(state,10)
-			elseif event[2]=="," then
-				navShiftText(state,-1)
-			elseif event[2]=="<" then
-				navShiftText(state,-10)
-			elseif ( event[2]=="-" or event[2]=="_" ) and #wrapped.values>0 then
-				local temp=state.yCursor+state.yShift
-				table.remove(wrapped.kinds, temp)--v
-				table.remove(wrapped.depths,temp)
-				table.remove(wrapped.types, temp)
-				table.remove(wrapped.values,temp)
-				table.remove(state.selection,temp)
-				if #wrapped.values==0 then
-					state.yCursor=1
-					state.yShift=0
-				elseif state.yCursor+state.yShift>#wrapped.kinds then
-					if state.yTextSize>=#wrapped.kinds then
-						state.yShift=0
-						state.yCursor=#wrapped.kinds
-					elseif state.yShift+state.yTextSize>#wrapped.kinds then
-						if state.yShift>=1 then
-							state.yShift=state.yShift-1
-						else
-							state.yCursor=state.yCursor-1
+	
+				elseif event[2]=="v" and wrapped.values[1] then
+					--paste
+					if not state.blockClipboard[xCursorName(state.xCursor)] then
+						wrapped[xCursorName(state.xCursor)][state.yCursor+state.yShift]=
+						state.clipboard[xCursorName(state.xCursor)]
+					end
+	
+				elseif event[2]=="V" and wrapped.values[1] then
+					--paste row
+					for i=1,4 do
+						if not state.blockClipboard[xCursorName(i)] then
+							wrapped[xCursorName(i)][state.yCursor+state.yShift]=
+							state.clipboard[xCursorName(i)]
 						end
 					end
+	
+				elseif event[2]=="b" then
+					--paste
+					state.blockClipboard[xCursorName(state.xCursor)]=true
+	
+				elseif event[2]=="B" then
+					--paste row
+					for i=1,4 do
+						state.blockClipboard[xCursorName(i)]=true
+					end
+				elseif ( event[2]=="-" or event[2]=="_" ) and wrapped.values[1] then
+					local temp=state.yCursor+state.yShift
+					table.remove(wrapped.kinds, temp)--v
+					table.remove(wrapped.depths,temp)
+					table.remove(wrapped.types, temp)
+					table.remove(wrapped.values,temp)
+					table.remove(state.selection,temp)
+					if #wrapped.values==0 then
+						state.yCursor=1
+						state.yShift=0
+					elseif state.yCursor+state.yShift>#wrapped.kinds then
+						if state.yTextSize>=#wrapped.kinds then
+							state.yShift=0
+							state.yCursor=#wrapped.kinds
+						elseif state.yShift+state.yTextSize>#wrapped.kinds then
+							if state.yShift>=1 then
+								state.yShift=state.yShift-1
+							else
+								state.yCursor=state.yCursor-1
+							end
+						end
+					end
+				elseif event[2]=="=" then
+					local temp=#wrapped.values>0 and state.yCursor+state.yShift+1 or 1
+					table.insert(wrapped.kinds, temp,"V")--v
+					table.insert(wrapped.depths,temp,wrapped.depths[state.yCursor+state.yShift] or 1)
+					table.insert(wrapped.types, temp,shortType(nil))
+					table.insert(wrapped.values,temp,"")
+					table.insert(state.selection,temp,false)
+				elseif event[2]=="+" then
+					local temp=#wrapped.values>0 and state.yCursor+state.yShift+1 or 1
+					table.insert(wrapped.kinds, temp,"K")--v
+					table.insert(wrapped.depths,temp,wrapped.depths[state.yCursor+state.yShift] or 1)
+					table.insert(wrapped.types, temp,shortType(nil))
+					table.insert(wrapped.values,temp,"")
+					table.insert(state.selection,temp,false)
 				end
-			elseif event[2]=="=" then
-				local temp=#wrapped.values>0 and state.yCursor+state.yShift+1 or 1
-				table.insert(wrapped.kinds, temp,"V")--v
-				table.insert(wrapped.depths,temp,wrapped.depths[state.yCursor+state.yShift] or 1)
-				table.insert(wrapped.types, temp,shortType(nil))
-				table.insert(wrapped.values,temp,"")
-				table.insert(state.selection,temp,false)
-			elseif event[2]=="+" then
-				local temp=#wrapped.values>0 and state.yCursor+state.yShift+1 or 1
-				table.insert(wrapped.kinds, temp,"K")--v
-				table.insert(wrapped.depths,temp,wrapped.depths[state.yCursor+state.yShift] or 1)
-				table.insert(wrapped.types, temp,shortType(nil))
-				table.insert(wrapped.values,temp,"")
-				table.insert(state.selection,temp,false)
 			end
-
 		elseif event[1]=="mouse_scroll" then
 			if event[4]==state.yPos then--top
 				if event[3]>=state.xPos and event[3]<state.xPos+8 then--X
@@ -3843,81 +3808,96 @@ local function execEvent(state,wrapped,event,eventOld)
 			end
 
 		elseif event[1]=="mouse_click" and event[2]==1 then
-			if event[4]==state.yPos then--TOP
-				state.place="topBar"
-			else
-				if event[4]-state.yPos==state.yCursor and #wrapped.values>0 then--ON ACTUAL LINE
-					if event[3]==state.xPos and state.xCursor==1 then
-						state.state="editing"
-						if wrapped[xCursorName(state.xCursor)][state.yCursor+state.yShift] then
-							if state.colored then
-								term.setTextColor(colors.red)
-								term.setBackgroundColor(colors.pink)
+			if state.place=="main" then
+				if event[4]==state.yPos then--TOP
+					state.place="topBar"
+				else
+					if event[4]-state.yPos==state.yCursor and wrapped.values[1] then--ON ACTUAL LINE
+						if event[3]==state.xPos and state.xCursor==1 then
+							state.state="editing"
+							if wrapped[xCursorName(state.xCursor)][state.yCursor+state.yShift] then
+								if state.colored then
+									term.setTextColor(colors.red)
+									term.setBackgroundColor(colors.pink)
+								end
+								term.setCursorPos(state.xPos,state.yPos+state.yCursor)
+								local temp=readEX(nil,state.history[xCursorName(state.xCursor)],tostring(wrapped[xCursorName(state.xCursor)][state.yCursor+state.yShift]),state.xPos+3,state)
+								temp=string.upper(temp)
+								if temp=="KEY" then temp="K" end
+								temp=string.sub(temp,#temp,#temp)
+								if temp~="K" then temp="V" end
+								if temp==wrapped[xCursorName(state.xCursor)][state.yCursor+state.yShift] then
+									if temp=="K" then temp="V" else temp="K" end
+								end
+								wrapped[xCursorName(state.xCursor)][state.yCursor+state.yShift]=temp
 							end
-							term.setCursorPos(state.xPos,state.yPos+state.yCursor)
-							local temp=readEX(nil,state.history[xCursorName(state.xCursor)],tostring(wrapped[xCursorName(state.xCursor)][state.yCursor+state.yShift]),state.xPos+3,state)
-							temp=string.upper(temp)
-							if temp=="KEY" then temp="K" end
-							temp=string.sub(temp,#temp,#temp)
-							if temp~="K" then temp="V" end
-							if temp==wrapped[xCursorName(state.xCursor)][state.yCursor+state.yShift] then
-								if temp=="K" then temp="V" else temp="K" end
+							state.state="pointing"
+						elseif (event[3]==state.xPos+2 or event[3]==state.xPos+1) and state.xCursor==2 then
+							state.state="editing"
+								if state.colored then
+									term.setTextColor(colors.red)
+									term.setBackgroundColor(colors.pink)
+								end
+							if wrapped[xCursorName(state.xCursor)][state.yCursor+state.yShift] then
+								term.setCursorPos(state.xPos,state.yPos+state.yCursor)
+								local temp=readEX(nil,state.history[xCursorName(state.xCursor)],tostring(wrapped[xCursorName(state.xCursor)][state.yCursor+state.yShift]),state.xPos+3,state)
+								temp=math.floor(tonumber(temp) or wrapped[xCursorName(state.xCursor)][state.yCursor+state.yShift])
+								if temp==wrapped[xCursorName(state.xCursor)][state.yCursor+state.yShift] then
+									temp=-wrapped[xCursorName(state.xCursor)][state.yCursor+state.yShift]
+								end
+								wrapped[xCursorName(state.xCursor)][state.yCursor+state.yShift]=temp
 							end
-							wrapped[xCursorName(state.xCursor)][state.yCursor+state.yShift]=temp
+							state.state="pointing"
+						elseif event[3]==state.xPos+3 and state.xCursor==3 then
+							state.state="editing"
+							if wrapped[xCursorName(state.xCursor)][state.yCursor+state.yShift] then
+								if state.colored then
+									term.setTextColor(colors.red)
+									term.setBackgroundColor(colors.pink)
+								end
+								term.setCursorPos(state.xPos,state.yPos+state.yCursor)
+								local temp=readEX(nil,state.history[xCursorName(state.xCursor)],tostring(wrapped[xCursorName(state.xCursor)][state.yCursor+state.yShift]),state.xPos+3,state)
+								temp=string.lower(temp)
+								temp=string.lower(temp)
+								temp=typeCheck(temp) or typeCheck(string.sub(temp,#temp,#temp)) or wrapped[xCursorName(state.xCursor)][state.yCursor+state.yShift]
+								wrapped[xCursorName(state.xCursor)][state.yCursor+state.yShift]=temp
+							end
+							state.state="pointing"
+						elseif event[3]>=state.xPos+4 and state.xCursor==4 then
+							state.state="editing"
+							if wrapped[xCursorName(state.xCursor)][state.yCursor+state.yShift] then
+								if wrapped.protected[state.yCursor+state.yShift] then
+									wrapped.protected[state.yCursor+state.yShift]=false
+									wrapped.values[state.yCursor+state.yShift]=""
+								end
+								if state.colored then
+									term.setTextColor(colors.red)
+									term.setBackgroundColor(colors.pink)
+								end
+								local temp=readEX(nil,state.history[xCursorName(state.xCursor)],tostring(wrapped[xCursorName(state.xCursor)][state.yCursor+state.yShift]),state.xTextMax,state)
+								if wrapped.protected[state.yCursor+state.yShift] then
+									wrapped.protected[state.yCursor+state.yShift]=false
+									wrapped.values[state.yCursor+state.yShift]=""
+								end
+								wrapped[xCursorName(state.xCursor)][state.yCursor+state.yShift]=temp
+							end
+							state.state="pointing"
+						else--MOVE TO COLUMN
+							if event[3]==state.xPos then
+								state.xCursor=1
+							elseif event[3]<=state.xPos+2 then
+								state.xCursor=2
+							elseif event[3]==state.xPos+3 then
+								state.xCursor=3
+							else
+								state.xCursor=4
+							end
 						end
-						state.state="pointing"
-					elseif (event[3]==state.xPos+2 or event[3]==state.xPos+1) and state.xCursor==2 then
-						state.state="editing"
-							if state.colored then
-								term.setTextColor(colors.red)
-								term.setBackgroundColor(colors.pink)
-							end
-						if wrapped[xCursorName(state.xCursor)][state.yCursor+state.yShift] then
-							term.setCursorPos(state.xPos,state.yPos+state.yCursor)
-							local temp=readEX(nil,state.history[xCursorName(state.xCursor)],tostring(wrapped[xCursorName(state.xCursor)][state.yCursor+state.yShift]),state.xPos+3,state)
-							temp=math.floor(tonumber(temp) or wrapped[xCursorName(state.xCursor)][state.yCursor+state.yShift])
-							if temp==wrapped[xCursorName(state.xCursor)][state.yCursor+state.yShift] then
-								temp=-wrapped[xCursorName(state.xCursor)][state.yCursor+state.yShift]
-							end
-							wrapped[xCursorName(state.xCursor)][state.yCursor+state.yShift]=temp
+					else--ON OTHER LINE
+						if wrapped.kinds[event[4]-state.xPos+state.yShift] then--ON OTHER EXISTING LINE
+							state.yCursor=event[4]-state.xPos--MOVE TO ROW
 						end
-						state.state="pointing"
-					elseif event[3]==state.xPos+3 and state.xCursor==3 then
-						state.state="editing"
-						if wrapped[xCursorName(state.xCursor)][state.yCursor+state.yShift] then
-							if state.colored then
-								term.setTextColor(colors.red)
-								term.setBackgroundColor(colors.pink)
-							end
-							term.setCursorPos(state.xPos,state.yPos+state.yCursor)
-							local temp=readEX(nil,state.history[xCursorName(state.xCursor)],tostring(wrapped[xCursorName(state.xCursor)][state.yCursor+state.yShift]),state.xPos+3,state)
-							temp=string.lower(temp)
-							temp=string.lower(temp)
-							temp=typeCheck(temp) or typeCheck(string.sub(temp,#temp,#temp)) or wrapped[xCursorName(state.xCursor)][state.yCursor+state.yShift]
-							wrapped[xCursorName(state.xCursor)][state.yCursor+state.yShift]=temp
-						end
-						state.state="pointing"
-					elseif event[3]>=state.xPos+4 and state.xCursor==4 then
-						state.state="editing"
-						if wrapped[xCursorName(state.xCursor)][state.yCursor+state.yShift] then
-							if wrapped.protected[state.yCursor+state.yShift] then
-								wrapped.protected[state.yCursor+state.yShift]=false
-								wrapped.values[state.yCursor+state.yShift]=""
-							end
-							if state.colored then
-								term.setTextColor(colors.red)
-								term.setBackgroundColor(colors.pink)
-							end
-							local temp=readEX(nil,state.history[xCursorName(state.xCursor)],tostring(wrapped[xCursorName(state.xCursor)][state.yCursor+state.yShift]),state.xTextMax,state)
-							if wrapped.protected[state.yCursor+state.yShift] then
-								wrapped.protected[state.yCursor+state.yShift]=false
-								wrapped.values[state.yCursor+state.yShift]=""
-							end
-							wrapped[xCursorName(state.xCursor)][state.yCursor+state.yShift]=temp
-						end
-						state.state="pointing"
-					else--MOVE TO COLUMN
-						if event[3]==state.xPos then
+						if event[3]==state.xPos then--MOVE TO COLUMN
 							state.xCursor=1
 						elseif event[3]<=state.xPos+2 then
 							state.xCursor=2
@@ -3926,6 +3906,66 @@ local function execEvent(state,wrapped,event,eventOld)
 						else
 							state.xCursor=4
 						end
+					end
+				end
+			else
+				if event[4]~=state.yMin then
+					state.place="main"
+				else
+					if event[3]>=state.xPos and event[3]<=state.xPos+6 then
+						if state.xCursor~=1 then
+							state.xCursor=1
+						else
+							xShiftGoTo(state,state)
+						end
+					elseif event[3]>=state.xPos+8 and event[3]<=state.xPos+14 then
+						if state.xCursor~=2 then
+							state.xCursor=2
+						else
+							yShiftGoTo(state,state,nil,#wrapped.values)
+						end
+					elseif event[3]>=state.xPos+16 and event[3]<=state.xPos+22 then
+						if state.xCursor~=3 then
+							state.xCursor=3
+						else
+							lineGoTo(state,state,nil,#wrapped.values)
+							state.place="main"
+						end
+					end
+				end
+			end
+
+		elseif event[1]=="mouse_click" then--other buttons
+			if state.place=="main" then
+				if event[4]-state.yPos==state.yCursor and wrapped.values[1] then--ON ACTUAL LINE
+					if event[3]==state.xPos then
+						if wrapped.kinds[event[4]-state.xPos+state.yShift] then --tests if value exist
+							state.xCursor=1
+							state.yCursor=event[4]-state.yPos
+							if wrapped.kinds[event[4]-state.xPos+state.yShift]=="K" then
+								wrapped.kinds[event[4]-state.xPos+state.yShift]="V"
+							else
+								wrapped.kinds[event[4]-state.xPos+state.yShift]="K"
+							end
+						end
+					elseif event[3]==state.xPos+3 then
+						if wrapped.kinds[event[4]-state.xPos+state.yShift] then --tests if value exist
+							state.xCursor=3
+							state.yCursor=event[4]-state.xPos
+							local cx,cy=term.getCursorPos()
+							term.setCursorPos(cx,event[4])
+							--state.place="sideMenu3"
+							wrapped.types[event[4]-state.xPos+state.yShift]=main3Dlg(state,wrapped.types[event[4]-state.xPos+state.yShift],wrapped,state.yCursor+state.yShift)
+						end
+					elseif event[3]<=state.xPos+3 then
+							state.xCursor=2
+							state.yCursor=event[4]-state.xPos
+							local cx,cy=term.getCursorPos()
+							term.setCursorPos(cx,event[4])
+						wrapped.depths[event[4]-state.xPos+state.yShift]=main2Dlg(state,wrapped.depths[event[4]-state.xPos+state.yShift],wrapped,state.yCursor+state.yShift)
+					else--4th column with txt :O
+						state.xCursor=4
+						--get some on screen keyboard
 					end
 				else--ON OTHER LINE
 					if wrapped.kinds[event[4]-state.xPos+state.yShift] then--ON OTHER EXISTING LINE
@@ -3941,53 +3981,32 @@ local function execEvent(state,wrapped,event,eventOld)
 						state.xCursor=4
 					end
 				end
-			end
-
-		elseif event[1]=="mouse_click" and event[2]==2 then
-			if event[4]==state.yPos then
-				state.place="menu"
-			elseif event[4]-state.yPos==state.yCursor and #wrapped.values>0 then--ON ACTUAL LINE
-				if event[3]==state.xPos then
-					if wrapped.kinds[event[4]-state.xPos+state.yShift] then --tests if value exist
-						state.xCursor=1
-						state.yCursor=event[4]-state.yPos
-						if wrapped.kinds[event[4]-state.xPos+state.yShift]=="K" then
-							wrapped.kinds[event[4]-state.xPos+state.yShift]="V"
+			else
+				if event[4]~=state.yMin then
+					state.place="main"
+				else
+					if event[3]>=state.xPos and event[3]<=state.xPos+6 then
+						if state.xCursor~=1 then
+							state.xCursor=1
 						else
-							wrapped.kinds[event[4]-state.xPos+state.yShift]="K"
+							xShiftGoTo(state,state,nil,numEditDlgPositive(state,state.xShift))
+							state.forceFullRender=true
+						end
+					elseif event[3]>=state.xPos+8 and event[3]<=state.xPos+14 then
+						if state.xCursor~=2 then
+							state.xCursor=2
+						else
+							yShiftGoTo(state,state,nil,#wrapped.values,numEditDlgPositive(state,state.xShift))
+							state.forceFullRender=true
+						end
+					elseif event[3]>=state.xPos+16 and event[3]<=state.xPos+22 then
+						if state.xCursor~=3 then
+							state.xCursor=3
+						else
+							lineGoTo(state,state,nil,#wrapped.values,numEditDlgPositive(state,state.xShift))
+							state.forceFullRender=true
 						end
 					end
-				elseif event[3]==state.xPos+3 then
-					if wrapped.kinds[event[4]-state.xPos+state.yShift] then --tests if value exist
-						state.xCursor=3
-						state.yCursor=event[4]-state.xPos
-						local cx,cy=term.getCursorPos()
-						term.setCursorPos(cx,event[4])
-						--state.place="sideMenu3"
-						wrapped.types[event[4]-state.xPos+state.yShift]=main3Dlg(state,wrapped.types[event[4]-state.xPos+state.yShift],wrapped,state.yCursor+state.yShift)
-					end
-				elseif event[3]<=state.xPos+3 then
-						state.xCursor=2
-						state.yCursor=event[4]-state.xPos
-						local cx,cy=term.getCursorPos()
-						term.setCursorPos(cx,event[4])
-					wrapped.depths[event[4]-state.xPos+state.yShift]=main2Dlg(state,wrapped.depths[event[4]-state.xPos+state.yShift],wrapped,state.yCursor+state.yShift)
-				else--4th column with txt :O
-					state.xCursor=4
-					--get some on screen keyboard
-				end
-			else--ON OTHER LINE
-				if wrapped.kinds[event[4]-state.xPos+state.yShift] then--ON OTHER EXISTING LINE
-					state.yCursor=event[4]-state.xPos--MOVE TO ROW
-				end
-				if event[3]==state.xPos then--MOVE TO COLUMN
-					state.xCursor=1
-				elseif event[3]<=state.xPos+2 then
-					state.xCursor=2
-				elseif event[3]==state.xPos+3 then
-					state.xCursor=3
-				else
-					state.xCursor=4
 				end
 			end
 
@@ -4008,7 +4027,7 @@ local function execEvent(state,wrapped,event,eventOld)
 					term.write(temp)
 				end
 				state.exec=false
-			elseif event[3]<=state.xPos+3 and #wrapped.values>0 then--CLICK NAV
+			elseif event[3]<=state.xPos+3 and wrapped.values[1] then--CLICK NAV
 				local temp=math.floor(state.yPos+1+(state.yTextSize/2))--MID
 				if event[4]<temp and state.yShift>0 then--TRYING TO DECREMENT YSHIFT
 					if #wrapped.kinds>=state.yShift+state.yTextSize+state.yCursor then
@@ -4058,240 +4077,59 @@ local function execEvent(state,wrapped,event,eventOld)
 				navShiftText(state,move)
 			end
 		end
-
-	elseif state.place=="topBar" then
+	elseif state.place=="menu" then
 		if event[1]=="key" then
-			if event[2]==keys["tab"] then--tab
-				state.place="main"--MOVE
-
-			elseif event[2]==keys["f8"] or event[2]==keys["e"] then--f8
-				state.place="main"
-
-			elseif event[2]==keys["f1"] then--f1
-				state.place="help"
-
-			elseif event[2]==keys["f3"] or event[2]==keys["t"] then--f3
-				state.place="tableAlias"
-				--table Alias
-				--try to get pointed Tab
-				--insert?
-
-			elseif event[2]==keys["f5"] or event[2]==keys["h"] then--f5
-				state.place="threadAlias"
-				--function alias
-				--try to get pointed fun
-				--insert?
-
-			elseif event[2]==keys["f4"] or event[2]==keys["f"] then--f4
-				state.place="functionAlias"
-				--function alias
-				--try to get pointed fun
-				--insert?
-			elseif event[2]==keys["f12"] or event[2]==keys["m"] then--f1,mm
-				state.place="menu"
-			elseif event[2]==keys["home"] then--home
-				navHome(state)
-
-			elseif event[2]==keys["end"] and #wrapped.values>0 then--end
-				navEnd(state,state,#wrapped.values*2)
-
-			elseif event[2]==keys["pageUp"] and #wrapped.values>0 then--pgu
-				navPageUp(state,state,#wrapped.values*2)
-
-			elseif event[2]==keys["pageDown"] and #wrapped.values>0 then--pgd
-				navPageDown(state,state,#wrapped.values*2)
-
-			elseif event[2]==keys["up"] and #wrapped.values>0 then--u
-				navUp(state,state,#wrapped.values*2)
-
-			elseif event[2]==keys["down"] and #wrapped.values>0 then--d
-				navDown(state,state,#wrapped.values*2)
-
-			elseif event[2]==keys["left"] then--l
-				navLeftCursor(state,4)
-
-			elseif event[2]==keys["right"] then--r
-				navRightCursor(state,4)
-
-			elseif event[2]==keys["enter"] then
-				if state.xCursor==4 then
-					state.place="menu"
-				else
-					state.state="editing"
-					if state.colored then
-						term.setTextColor(colors.red)
-						term.setBackgroundColor(colors.pink)
-					end
-					-- INTO readEX
-					if state.xCursor==1 then
-						xShiftGoTo(state,state)
-					elseif state.xCursor==2 then
-						yShiftGoTo(state,state,nil,#wrapped.values)
-					else
-						lineGoTo(state,state,nil,#wrapped.values)
-						state.place="main"
-					end
-					state.state="pointing"
-				end
+			if event[2]==keys["f1"] then state.place="help"
+			elseif event[2]==keys["grave"] or event[2]==keys["f10"] then state.exec=false
+			elseif event[2]==keys["f8"] or	event[2]==keys["e"] then state.place="main"
+			elseif event[2]==keys["f3"] or	event[2]==keys["t"] then state.place="tableAlias"
+			elseif event[2]==keys["f5"] or	event[2]==keys["h"] then state.place="threadAlias"
+			elseif event[2]==keys["f4"] or	event[2]==keys["f"] then state.place="functionAlias"
+			elseif event[2]==keys["f12"] or	event[2]==keys["m"] then state.place="main"
+			elseif event[2]==keys["home"] then		navHome(state["menu"])
+			elseif event[2]==keys["end"] then		navEnd(state["menu"],state,state.menu.entrycount)
+			elseif event[2]==keys["pageUp"] then	navPageUp(state["menu"],state,state.menu.entrycount)
+			elseif event[2]==keys["pageDown"] then	navPageDown(state["menu"],state,state.menu.entrycount)
+			elseif event[2]==keys["up"] then		navUp(state["menu"],state,state.menu.entrycount)
+			elseif event[2]==keys["down"] then		navDown(state["menu"],state,state.menu.entrycount)
+			elseif event[2]==keys["left"] then		navShiftText(state["menu"],-1)
+			elseif event[2]==keys["right"] then		navShiftText(state["menu"],1)
+			elseif event[2]==keys["enter"] then		execMenu(state,wrapped,state["menu"].yCursor+state["menu"].yShift-2)
 			end
 		elseif event[1]=="char" then
-			if event[2]=="i" then
-				state.indents=state.indents+1
-			elseif event[2]=="I" then
-				if state.indents>=1 then state.indents=state.indents-1 end
-			elseif event[2]=="." then
-				navShiftText(state,1)
-			elseif event[2]==">" then
-				navShiftText(state,10)
-			elseif event[2]=="," then
-				navShiftText(state,-1)
-			elseif event[2]=="<" then
-				navShiftText(state,-10)
+			if event[2]=="." then navShiftText(state["menu"],1)
+			elseif event[2]==">" then navShiftText(state["menu"],10)
+			elseif event[2]=="," then navShiftText(state["menu"],-1)
+			elseif event[2]=="<" then navShiftText(state["menu"],-10)
 			end
 		elseif event[1]=="mouse_scroll" then
-			if event[4]==state.yPos then--top
-				if event[3]>=state.xPos and event[3]<state.xPos+8 then--X
-					navShiftText(state,event[2])
-				elseif #wrapped.values>0 then--entries exist
-					if event[3]>=state.xPos+8 and event[3]<state.xPos+16 then--Y
-						if #wrapped.kinds>=state.yTextSize+state.yShift+event[2] then
-							state.yShift=state.yShift+event[2]
-						end
-						if state.yShift<0 then state.yShift=0 end
-					elseif event[3]>=state.xPos+16 and event[3]<state.xPos+24 then--L
-						if #wrapped.kinds>=state.yCursor+state.yShift+event[2] then
-							if (event[2]>0 and state.yCursor==state.yTextSize) or
-							(event[2]<0 and state.yCursor==1) then
-								state.yShift=state.yShift+event[2]
-							else
-								state.yCursor=state.yCursor+event[2]
-							end
-						end
-						if state.yShift<0 then state.yShift=0 end
-					end
-				end
-			elseif #wrapped.values>0 then--NOT TOP entries exist
-				if event[3]==1 then--COLUMN 1
-					if wrapped.kinds[event[4]-state.xPos]=="K" then
-						wrapped.kinds[event[4]-state.xPos]="V"
-					else
-						wrapped.kinds[event[4]-state.xPos]="K"
-					end
-				elseif event[3]<=3 then--COLUMN 2,3
-					if wrapped.depths[event[4]-state.xPos] then
-						wrapped.depths[event[4]-state.xPos]=wrapped.depths[event[4]-state.xPos]+event[2]
-					end
-				elseif event[3]==4 then--COLUMN 4
-					wrapped.types[event[4]-state.xPos]=numToType((event[2]+typeToNum(wrapped.types[event[4]-state.xPos]))%9)
-				end
-			end
-
+			if event[2]==1 then navUp(state["menu"],state,state.menu.entrycount) else navDown(state["menu"],state,state.menu.entrycount) end
 		elseif event[1]=="mouse_click" then
-			if event[4]~=state.yMin then
-				state.place="main"
-			else
+			if event[4]==state.yMin then
 				if event[3]>=state.xPos and event[3]<=state.xPos+6 then
-					if state.xCursor~=1 then
-						state.xCursor=1
-					elseif event[2]==1 then
-						xShiftGoTo(state,state)
+					if event[2]==1 then
+						xShiftGoTo(state["menu"],state)
 					else
-						xShiftGoTo(state,state,nil,numEditDlgPositive(state,state.xShift))
+						xShiftGoTo(state["menu"],state,nil,numEditDlgPositive(state["menu"],state.xShift))
 						state.forceFullRender=true
 					end
 				elseif event[3]>=state.xPos+8 and event[3]<=state.xPos+14 then
-					if state.xCursor~=2 then
-						state.xCursor=2
-					elseif event[2]==1 then
-						yShiftGoTo(state,state,nil,#wrapped.values)
+					if event[2]==1 then
+						yShiftGoTo(state["menu"],state,nil,#wrapped.values)
 					else
-						yShiftGoTo(state,state,nil,#wrapped.values,numEditDlgPositive(state,state.xShift))
+						yShiftGoTo(state["menu"],state,nil,#wrapped.values,numEditDlgPositive(state["menu"],state.xShift))
 						state.forceFullRender=true
 					end
 				elseif event[3]>=state.xPos+16 and event[3]<=state.xPos+22 then
-					if state.xCursor~=3 then
-						state.xCursor=3
-					elseif event[2]==1 then
-						lineGoTo(state,state,nil,#wrapped.values)
-						state.place="main"
+					if event[2]==1 then
+						lineGoTo(state["menu"],state,nil,#wrapped.values)
 					else
-						lineGoTo(state,state,nil,#wrapped.values,numEditDlgPositive(state,state.xShift))
+						lineGoTo(state["menu"],state,nil,#wrapped.values,numEditDlgPositive(state["menu"],state.xShift))
 						state.forceFullRender=true
 					end
 				end
-			end
-		end
-
-	elseif state.place=="menu" then
-		if event[1]=="key" then
-			if event[2]==keys["f1"] then--f1
-				state.place="help"
-
-			elseif event[2]==keys["f8"] or event[2]==keys["e"] then--f8
-				state.place="main"
-
-			elseif event[2]==keys["f3"] or event[2]==keys["t"] then--f3
-				state.place="tableAlias"
-				--table Alias
-				--try to get pointed Tab
-				--insert?
-
-			elseif event[2]==keys["f5"] or event[2]==keys["h"] then--f5
-				state.place="threadAlias"
-				--function alias
-				--try to get pointed fun
-				--insert?
-
-			elseif event[2]==keys["f4"] or event[2]==keys["f"] then--f4
-				state.place="functionAlias"
-				--function alias
-				--try to get pointed fun
-				--insert?
-			elseif event[2]==keys["f12"] or event[2]==keys["m"] then--f1,mm
-				state.place="main"
-
-			elseif event[2]==keys["home"] then--home
-				navHome(state["menu"])
-
-			elseif event[2]==keys["end"] then--end
-				navEnd(state["menu"],state,state.menu.entrycount)
-
-			elseif event[2]==keys["pageUp"] then--pgu
-				navPageUp(state["menu"],state,state.menu.entrycount)
-
-			elseif event[2]==keys["pageDown"] then--pgd
-				navPageDown(state["menu"],state,state.menu.entrycount)
-
-			elseif event[2]==keys["up"] then--u
-				navUp(state["menu"],state,state.menu.entrycount)
-
-			elseif event[2]==keys["down"] then--d
-				navDown(state["menu"],state,state.menu.entrycount)
-
-			elseif event[2]==keys["left"] then--l
-				navShiftText(state["menu"],-1)
-
-			elseif event[2]==keys["right"] then--r
-				navShiftText(state["menu"],1)
-
-			elseif event[2]==keys["enter"] then
-				execMenu(state,wrapped,state["menu"].yCursor+state["menu"].yShift-2)
-			end
-		elseif event[1]=="char" then
-			if event[2]=="." then
-				navShiftText(state["menu"],1)
-			elseif event[2]==">" then
-				navShiftText(state["menu"],10)
-			elseif event[2]=="," then
-				navShiftText(state["menu"],-1)
-			elseif event[2]=="<" then
-				navShiftText(state["menu"],-10)
-			end
-		elseif event[1]=="mouse_scroll" then
-
-		elseif event[1]=="mouse_click" then
 			--removed main menu link
-			if event[4]-state.yPos==state["menu"].yCursor and event[2]==1 then--ON ACTUAL LINE
+			elseif event[4]-state.yPos==state["menu"].yCursor and event[2]==1 then--ON ACTUAL LINE
 				execMenu(state,wrapped,state["menu"].yCursor+state["menu"].yShift-2)
 			else--ON OTHER LINE
 				if event[4]-state.xPos+state["menu"].yShift<=state["menu"].entrycount then--ON OTHER EXISTING LINE
@@ -4391,9 +4229,8 @@ local function execEvent(state,wrapped,event,eventOld)
 		end
 	elseif state.place=="tableAlias" then
 		if event[1]=="key" then
-			if event[2]==keys["tab"] then--tab
-				state.place="topBarTableAlias"--MOVE
-
+			if event[2]==keys["tab"] then state.place="topBarTableAlias"--MOVE
+			elseif event[2]==keys["grave"] or event[2]==keys["f10"] then state.exec=false
 			elseif event[2]==keys["f8"] or event[2]==keys["e"] then--f8
 				state.place="main"
 
